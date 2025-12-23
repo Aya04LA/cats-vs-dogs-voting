@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cats vs Dogs - Vote!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .vote-buttons {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .vote-btn {
+            flex: 1;
+            padding: 60px 20px;
+            font-size: 3em;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .vote-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .vote-btn.cats {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        }
+        
+        .vote-btn.dogs {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+        
+        .vote-btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .label {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.4em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .voted-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .voted-message h2 {
+            margin-bottom: 10px;
+        }
+        
+        .results-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .results-link:hover {
+            background: #5568d3;
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐱 vs 🐶</h1>
+        <p class="subtitle">Which is better?</p>
+        
+        {% if voted %}
+        <div class="voted-message">
+            <h2>Thanks for voting!</h2>
+            <p>You voted for: <strong>{{ option_a if vote == 'a' else option_b }}</strong></p>
+            <a href="http://localhost:8081" class="results-link">View Results →</a>
+        </div>
+        <div class="info">
+            💡 Already voted? Open an incognito window or use a different browser to vote again!
+        </div>
+        {% else %}
+        <form method="POST">
+            <div class="vote-buttons">
+                <button type="submit" name="vote" value="a" class="vote-btn cats">
+                    🐱
+                    <span class="label">{{ option_a }}</span>
+                </button>
+                <button type="submit" name="vote" value="b" class="vote-btn dogs">
+                    🐶
+                    <span class="label">{{ option_b }}</span>
+                </button>
+            </div>
+        </form>
+        <a href="http://localhost:8081" class="results-link">View Results →</a>
+        <div class="info">
+            💡 Tip: You can only vote once 
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

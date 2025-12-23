@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cats vs Dogs - Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        
+        .results {
+            margin-bottom: 30px;
+        }
+        
+        .result-item {
+            margin-bottom: 30px;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .result-label {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .result-count {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        
+        .result-bar {
+            height: 60px;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 1.5em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .result-bar.cats {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        }
+        
+        .result-bar.dogs {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+        
+        .percentage {
+            position: absolute;
+            right: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .total {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .vote-link {
+            display: block;
+            text-align: center;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .vote-link:hover {
+            background: #5568d3;
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="live-indicator"></span>Live Results</h1>
+        
+        <div class="total">
+            Total Votes: <strong id="total-votes">0</strong>
+        </div>
+        
+        <div class="results">
+            <div class="result-item">
+                <div class="result-header">
+                    <span class="result-label">🐱 Cats</span>
+                    <span class="result-count" id="cats-count">0</span>
+                </div>
+                <div class="result-bar cats" id="cats-bar">
+                    <span class="percentage" id="cats-percent">0%</span>
+                </div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-header">
+                    <span class="result-label">🐶 Dogs</span>
+                    <span class="result-count" id="dogs-count">0</span>
+                </div>
+                <div class="result-bar dogs" id="dogs-bar">
+                    <span class="percentage" id="dogs-percent">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <a href="http://localhost:8082" class="vote-link">← Back to Voting</a>
+    </div>
+    
+    <script>
+        function updateResults() {
+            fetch('/api/results')
+                .then(response => response.json())
+                .then(data => {
+                    const cats = data.a || 0;
+                    const dogs = data.b || 0;
+                    const total = cats + dogs;
+                    
+                    document.getElementById('total-votes').textContent = total;
+                    document.getElementById('cats-count').textContent = cats;
+                    document.getElementById('dogs-count').textContent = dogs;
+                    
+                    const catsPercent = total > 0 ? Math.round((cats / total) * 100) : 0;
+                    const dogsPercent = total > 0 ? Math.round((dogs / total) * 100) : 0;
+                    
+                    document.getElementById('cats-percent').textContent = catsPercent + '%';
+                    document.getElementById('dogs-percent').textContent = dogsPercent + '%';
+                    
+                    document.getElementById('cats-bar').style.width = catsPercent + '%';
+                    document.getElementById('dogs-bar').style.width = dogsPercent + '%';
+                })
+                .catch(error => console.error('Error fetching results:', error));
+        }
+        
+        // Update immediately and then every 2 seconds
+        updateResults();
+        setInterval(updateResults, 2000);
+    </script>
+</body>
+</html>
