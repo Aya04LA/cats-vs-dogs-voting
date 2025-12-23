@@ -8,7 +8,8 @@ app = Flask(__name__)
 
 # Connect to Redis
 redis_host = os.getenv('REDIS_HOST', 'redis')
-r = redis.Redis(host=redis_host, port=6379, db=0)
+redis_port = int(os.getenv('REDIS_PORT', 6379))
+r = redis.Redis(host=redis_host, port=redis_port, db=0)
 
 option_a = "Cats"
 option_b = "Dogs"
@@ -26,19 +27,24 @@ def vote():
         data = json.dumps({'voter_id': voter_id, 'vote': vote})
         r.rpush('votes', data)
         
-        resp = make_response(render_template('vote.html', 
-                                            option_a=option_a, 
-                                            option_b=option_b,
-                                            voted=True,
-                                            vote=vote))
+        resp = make_response(render_template(
+            'vote.html', 
+            option_a=option_a, 
+            option_b=option_b,
+            voted=True,
+            vote=vote
+        ))
         resp.set_cookie('voter_id', voter_id)
         return resp
     
     has_voted = voter_id is not None
-    return render_template('vote.html', 
-                          option_a=option_a, 
-                          option_b=option_b,
-                          voted=has_voted)
+    return render_template(
+        'vote.html', 
+        option_a=option_a, 
+        option_b=option_b,
+        voted=has_voted
+    )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    port = int(os.environ.get('PORT', 8082))  # Railway dynamic port, fallback for local
+    app.run(host='0.0.0.0', port=port, debug=True)
