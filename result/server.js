@@ -5,8 +5,7 @@ const path = require('path');
 const app = express();
 const port = 80;
 
-// PostgreSQL connection
-// Railway provides DATABASE_URL
+// PostgreSQL connection - Railway provides DATABASE_URL
 const pool = new Pool(
   process.env.DATABASE_URL ? {
     connectionString: process.env.DATABASE_URL,
@@ -15,7 +14,7 @@ const pool = new Pool(
     database: process.env.PGDATABASE || 'votes',
     user: process.env.PGUSER || 'postgres',
     password: process.env.PGPASSWORD || 'postgres',
-    port: process.env.PGPORT || 5432,
+    port: parseInt(process.env.PGPORT || '5432'),
   }
 );
 
