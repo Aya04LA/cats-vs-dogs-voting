@@ -6,13 +6,18 @@ const app = express();
 const port = 80;
 
 // PostgreSQL connection
-const pool = new Pool({
-  host: process.env.DB_HOST || 'db',
-  database: 'votes',
-  user: 'postgres',
-  password: 'postgres',
-  port: 5432,
-});
+// Railway provides DATABASE_URL
+const pool = new Pool(
+  process.env.DATABASE_URL ? {
+    connectionString: process.env.DATABASE_URL,
+  } : {
+    host: process.env.PGHOST || process.env.DB_HOST || 'db',
+    database: process.env.PGDATABASE || 'votes',
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || 'postgres',
+    port: process.env.PGPORT || 5432,
+  }
+);
 
 app.use(express.static('public'));
 

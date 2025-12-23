@@ -10,12 +10,18 @@ r = redis.Redis(host=redis_host, port=6379, db=0)
 
 # Connect to Postgres
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv('DB_HOST', 'db'),
-        database='votes',
-        user='postgres',
-        password='postgres'
-    )
+    # Railway provides DATABASE_URL, or use individual vars
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return psycopg2.connect(database_url)
+    else:
+        return psycopg2.connect(
+            host=os.getenv('PGHOST', os.getenv('DB_HOST', 'db')),
+            database=os.getenv('PGDATABASE', 'votes'),
+            user=os.getenv('PGUSER', 'postgres'),
+            password=os.getenv('PGPASSWORD', 'postgres'),
+            port=os.getenv('PGPORT', '5432')
+        )
 
 def create_table():
     conn = get_db_connection()
