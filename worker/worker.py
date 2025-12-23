@@ -8,21 +8,35 @@ import os
 redis_host = os.getenv('REDIS_HOST', 'redis')
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
-# Connect to Postgres
+
+import urllib.parse as up
+
 def get_db_connection():
-    # Railway provides DATABASE_URL
     database_url = os.getenv('DATABASE_URL')
-    if database_url:
-        return psycopg2.connect(database_url)
-    else:
-        # Fallback to individual environment variables
-        return psycopg2.connect(
-            host=os.getenv('PGHOST', os.getenv('DB_HOST', 'db')),
-            database=os.getenv('PGDATABASE', 'votes'),
-            user=os.getenv('PGUSER', 'postgres'),
-            password=os.getenv('PGPASSWORD', 'postgres'),
-            port=os.getenv('PGPORT', '5432')
-        )
+    
+    try:
+        if database_url:
+            # psycopg2 >= 2.8 supports direct URL connection
+            return psycopg2.connect(database_url)
+        else:
+            # Fallback to individual environment variables
+            host = os.getenv('PGHOST', os.getenv('DB_HOST', 'db'))
+            dbname = os.getenv('PGDATABASE', 'votes')
+            user = os.getenv('PGUSER', 'postgres')
+            password = os.getenv('PGPASSWORD', 'postgres')
+            port = int(os.getenv('PGPORT', '5432'))
+            
+            return psycopg2.connect(
+                host=host,
+                database=dbname,
+                user=user,
+                password=password,
+                port=port
+            )
+    except Exception as e:
+        # Only print if connection fails
+        print(f"[DB ERROR] Failed to connect to PostgreSQL: {e}")
+        raise
 
 def create_table():
     conn = get_db_connection()
