@@ -7,17 +7,15 @@ import json
 app = Flask(__name__)
 
 # Connect to Redis
+redis_host = os.getenv('REDIS_HOST', 'redis')
+redis_url = os.getenv('REDIS_URL')
 
-
-redis_url = os.getenv("REDIS_URL")
-
-if not redis_url:
-    raise RuntimeError("REDIS_URL is not set")
-
-r = redis.Redis.from_url(
-    redis_url,
-    decode_responses=True
-)
+if redis_url:
+    # Railway provides REDIS_URL
+    r = redis.Redis.from_url(redis_url, decode_responses=False)
+else:
+    # Fallback for local development
+    r = redis.Redis(host=redis_host, port=6379, db=0)
 
 
 
@@ -56,6 +54,5 @@ def vote():
     )
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))  # required
+    port = int(os.environ.get("PORT", 80))  # Change 8080 to 80
     app.run(host='0.0.0.0', port=port)
-
