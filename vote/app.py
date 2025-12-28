@@ -6,22 +6,15 @@ import json
 
 app = Flask(__name__)
 
-# Connect to Redis
-redis_host = os.getenv('REDIS_HOST', 'redis')
-redis_port = int(os.getenv('REDIS_PORT', 6379))
+# --- Redis connection (Railway-compatible) ---
 redis_url = os.getenv("REDIS_URL")
+if not redis_url:
+    raise RuntimeError("REDIS_URL is not set")
 
-if redis_url:
-    r = redis.Redis.from_url(redis_url, decode_responses=True)
-else:
-    r = redis.Redis(
-        host=os.getenv("REDIS_HOST", "redis"),
-        port=int(os.getenv("REDIS_PORT", 6379)),
-        password=os.getenv("REDIS_PASSWORD"),
-        db=0,
-        decode_responses=True
-    )
-
+r = redis.Redis.from_url(
+    redis_url,
+    decode_responses=True
+)
 
 option_a = "Cats"
 option_b = "Dogs"
@@ -29,30 +22,30 @@ option_b = "Dogs"
 @app.route('/', methods=['GET', 'POST'])
 def vote():
     voter_id = request.cookies.get('voter_id')
-    
+
     if request.method == 'POST':
         vote = request.form.get('vote')
-        
+
         if not voter_id:
             voter_id = hex(random.getrandbits(64))[2:]
-        
+
         data = json.dumps({'voter_id': voter_id, 'vote': vote})
         r.rpush('votes', data)
-        
+
         resp = make_response(render_template(
-            'vote.html', 
-            option_a=option_a, 
+            'vote.html',
+            option_a=option_a,
             option_b=option_b,
             voted=True,
             vote=vote
         ))
         resp.set_cookie('voter_id', voter_id)
         return resp
-    
+
     has_voted = voter_id is not None
     return render_template(
-        'vote.html', 
-        option_a=option_a, 
+        'vote.html',
+        option_a=option_a,
         option_b=option_b,
         voted=has_voted
     )
