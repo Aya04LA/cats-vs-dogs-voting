@@ -4,14 +4,21 @@ import json
 import time
 import os
 
-# Connect to Redis
+# Connect to Redis - Railway requires authentication
+redis_url = os.getenv('REDIS_URL')
 redis_host = os.getenv('REDIS_HOST', 'redis')
-r = redis.Redis(host=redis_host, port=6379, db=0)
 
+if redis_url:
+    # Use REDIS_URL (includes password)
+    r = redis.Redis.from_url(redis_url, decode_responses=False)
+else:
+    # Fallback for local development
+    r = redis.Redis(host=redis_host, port=6379, db=0)
 
 import urllib.parse as up
 
 def get_db_connection():
+    # ... rest of your code stays the same
     database_url = os.getenv('DATABASE_URL')
     
     try:
