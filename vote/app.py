@@ -11,13 +11,9 @@ redis_host = os.getenv('REDIS_HOST', 'redis')
 redis_url = os.getenv('REDIS_URL')
 
 if redis_url:
-    # Railway provides REDIS_URL
     r = redis.Redis.from_url(redis_url, decode_responses=False)
 else:
-    # Fallback for local development
     r = redis.Redis(host=redis_host, port=6379, db=0)
-
-
 
 option_a = "Cats"
 option_b = "Dogs"
@@ -54,5 +50,5 @@ def vote():
     )
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 80))  # Change 8080 to 80
+    port = int(os.environ.get("PORT", 80))  # Use port 80
     app.run(host='0.0.0.0', port=port)
