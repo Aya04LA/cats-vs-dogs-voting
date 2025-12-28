@@ -161,11 +161,16 @@
             </div>
         </div>
         
-        <a href="https://natural-laughter-production-6e45.up.railway.app" class="vote-link">← Back to Voting</a>
-
+        <a href="#" id="vote-link" class="vote-link">← Back to Voting</a>
     </div>
     
     <script>
+        // Get vote URL from environment
+        const voteUrl = '%VOTE_URL%';
+        if (voteUrl && voteUrl !== '%VOTE_URL%') {
+            document.getElementById('vote-link').href = voteUrl;
+        }
+        
         function updateResults() {
             fetch('/api/results')
                 .then(response => response.json())
