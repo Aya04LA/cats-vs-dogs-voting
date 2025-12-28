@@ -18,7 +18,6 @@ else:
 import urllib.parse as up
 
 def get_db_connection():
-    # ... rest of your code stays the same
     database_url = os.getenv('DATABASE_URL')
     
     try:
