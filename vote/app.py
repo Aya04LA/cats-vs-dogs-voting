@@ -9,7 +9,19 @@ app = Flask(__name__)
 # Connect to Redis
 redis_host = os.getenv('REDIS_HOST', 'redis')
 redis_port = int(os.getenv('REDIS_PORT', 6379))
-r = redis.Redis(host=redis_host, port=redis_port, db=0)
+redis_url = os.getenv("REDIS_URL")
+
+if redis_url:
+    r = redis.Redis.from_url(redis_url, decode_responses=True)
+else:
+    r = redis.Redis(
+        host=os.getenv("REDIS_HOST", "redis"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        password=os.getenv("REDIS_PASSWORD"),
+        db=0,
+        decode_responses=True
+    )
+
 
 option_a = "Cats"
 option_b = "Dogs"
@@ -46,5 +58,7 @@ def vote():
     )
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8082))  # Railway dynamic port, fallback for local
+    redis_port = int(os.getenv('REDIS_PORT', 6379))
+  # fallback for local testing
     app.run(host='0.0.0.0', port=port, debug=True)
+
