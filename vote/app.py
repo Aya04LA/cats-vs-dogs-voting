@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, make_response
 import redis
 import os
-import random
+import secrets
 import json
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ def vote():
         vote = request.form.get('vote')
         
         if not voter_id:
-            voter_id = hex(random.getrandbits(64))[2:]
+            voter_id = secrets.token_hex(8)
         
         data = json.dumps({'voter_id': voter_id, 'vote': vote})
         r.rpush('votes', data)
@@ -38,7 +38,7 @@ def vote():
             voted=True,
             vote=vote
         ))
-        resp.set_cookie('voter_id', voter_id)
+        resp.set_cookie('voter_id', voter_id, httponly=True, samesite='Lax')
         return resp
     
     has_voted = voter_id is not None
@@ -50,5 +50,5 @@ def vote():
     )
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 80))  # Use port 80
+    port = int(os.environ.get("PORT", 80))
     app.run(host='0.0.0.0', port=port)

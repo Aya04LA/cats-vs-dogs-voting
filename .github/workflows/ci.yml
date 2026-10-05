@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and start the stack
+        run: docker compose up -d --build --wait
+
+      - name: Cast votes
+        run: |
+          curl -fsS -X POST -d vote=a http://localhost:8082/ -o /dev/null
+          curl -fsS -X POST -d vote=b http://localhost:8082/ -o /dev/null
+          curl -fsS -X POST -d vote=a http://localhost:8082/ -o /dev/null
+
+      - name: Check results
+        run: |
+          for i in $(seq 1 15); do
+            results=$(curl -fsS http://localhost:8081/api/results)
+            echo "$results"
+            [ "$results" = '{"a":2,"b":1}' ] && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

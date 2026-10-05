@@ -1,12 +1,13 @@
-version: '3.8'
-
 services:
   vote:
     build: ./vote
     ports:
       - "8082:80"
+    environment:
+      PORT: 80
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - front-tier
       - back-tier
@@ -16,8 +17,12 @@ services:
     build: ./result
     ports:
       - "8081:80"
+    environment:
+      PORT: 80
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-votes}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - front-tier
       - back-tier
@@ -25,15 +30,23 @@ services:
 
   worker:
     build: ./worker
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-votes}
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     networks:
       - back-tier
     restart: unless-stopped
 
   redis:
     image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
     networks:
       - back-tier
     restart: unless-stopped
@@ -41,9 +54,13 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: votes
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-votes}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:

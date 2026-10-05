@@ -15,90 +15,91 @@ else:
     # Fallback for local development
     r = redis.Redis(host=redis_host, port=6379, db=0)
 
-import urllib.parse as up
 
 def get_db_connection():
     database_url = os.getenv('DATABASE_URL')
-    
-    try:
-        if database_url:
-            # psycopg2 >= 2.8 supports direct URL connection
-            return psycopg2.connect(database_url)
-        else:
-            # Fallback to individual environment variables
-            host = os.getenv('PGHOST', os.getenv('DB_HOST', 'db'))
-            dbname = os.getenv('PGDATABASE', 'votes')
-            user = os.getenv('PGUSER', 'postgres')
-            password = os.getenv('PGPASSWORD', 'postgres')
-            port = int(os.getenv('PGPORT', '5432'))
-            
-            return psycopg2.connect(
-                host=host,
-                database=dbname,
-                user=user,
-                password=password,
-                port=port
-            )
-    except Exception as e:
-        # Only print if connection fails
-        print(f"[DB ERROR] Failed to connect to PostgreSQL: {e}")
-        raise
 
-def create_table():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS votes (
-            id VARCHAR(255) PRIMARY KEY,
-            vote VARCHAR(255) NOT NULL
-        )
-    ''')
-    conn.commit()
-    cur.close()
-    conn.close()
+    if database_url:
+        # psycopg2 >= 2.8 supports direct URL connection
+        return psycopg2.connect(database_url)
 
-def process_votes():
-    while True:
+    # Fallback to individual environment variables
+    return psycopg2.connect(
+        host=os.getenv('PGHOST', os.getenv('DB_HOST', 'db')),
+        database=os.getenv('PGDATABASE', 'votes'),
+        user=os.getenv('PGUSER', 'postgres'),
+        password=os.getenv('PGPASSWORD', 'postgres'),
+        port=int(os.getenv('PGPORT', '5432'))
+    )
+
+
+def connect_with_retry(attempts=30, delay=2):
+    """Wait for Postgres to accept connections instead of sleeping a fixed time."""
+    for attempt in range(1, attempts + 1):
         try:
-            # Get vote from Redis queue
+            return get_db_connection()
+        except psycopg2.OperationalError as e:
+            print(f"[DB] Not ready (attempt {attempt}/{attempts}): {e}")
+            time.sleep(delay)
+    raise RuntimeError("Could not connect to PostgreSQL")
+
+
+def create_table(conn):
+    with conn.cursor() as cur:
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS votes (
+                id VARCHAR(255) PRIMARY KEY,
+                vote VARCHAR(255) NOT NULL
+            )
+        ''')
+    conn.commit()
+
+
+def save_vote(conn, voter_id, vote):
+    # Insert or update vote (one vote per voter, last choice wins)
+    with conn.cursor() as cur:
+        cur.execute('''
+            INSERT INTO votes (id, vote)
+            VALUES (%s, %s)
+            ON CONFLICT (id)
+            DO UPDATE SET vote = EXCLUDED.vote
+        ''', (voter_id, vote))
+    conn.commit()
+
+
+def process_votes(conn):
+    while True:
+        # Get vote from Redis queue
+        try:
             data = r.blpop('votes', timeout=5)
-            
-            if data:
-                vote_data = json.loads(data[1])
-                voter_id = vote_data['voter_id']
-                vote = vote_data['vote']
-                
-                # Store in Postgres
-                conn = get_db_connection()
-                cur = conn.cursor()
-                
-                # Insert or update vote
-                cur.execute('''
-                    INSERT INTO votes (id, vote) 
-                    VALUES (%s, %s)
-                    ON CONFLICT (id) 
-                    DO UPDATE SET vote = EXCLUDED.vote
-                ''', (voter_id, vote))
-                
-                conn.commit()
-                cur.close()
-                conn.close()
-                
-                print(f"Processed vote: {voter_id} -> {vote}")
-        
-        except Exception as e:
-            print(f"Error: {e}")
+        except redis.RedisError as e:
+            print(f"[Redis] Error: {e}")
             time.sleep(1)
+            continue
+
+        if not data:
+            continue
+
+        vote_data = json.loads(data[1])
+        voter_id = vote_data['voter_id']
+        vote = vote_data['vote']
+
+        # Store in Postgres, reconnecting once if the connection dropped
+        try:
+            save_vote(conn, voter_id, vote)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+            print(f"[DB] Connection lost ({e}), reconnecting...")
+            conn = connect_with_retry()
+            save_vote(conn, voter_id, vote)
+
+        print(f"Processed vote: {voter_id} -> {vote}")
+
 
 if __name__ == '__main__':
     print("Worker starting...")
-    
-    # Wait for database to be ready
-    time.sleep(5)
-    
-    # Create table
-    create_table()
+
+    conn = connect_with_retry()
+    create_table(conn)
     print("Database ready!")
-    
-    # Start processing votes
-    process_votes()
+
+    process_votes(conn)
